@@ -16,10 +16,7 @@ import org.springframework.util.MultiValueMap;
 
 import java.io.Serializable;
 import java.lang.reflect.ParameterizedType;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Pattern;
 
 import static com.sparktechcode.springjpasearch.exceptions.SparkError.UNABLE_TO_FIND_ENTITY_CLASS;
@@ -63,6 +60,10 @@ public interface SearchService<I, E extends BaseEntity<I>> extends SearchPredica
         var countQuery = toCountSpecification(params, specification);
         var ids = getIds(dataQuery, pageable);
         var data = getRepository().findAllById(ids);
+        data.sort(Comparator.comparing(item -> {
+            var index = ids.indexOf((String) item.getId());
+            return index == -1 ? Integer.MAX_VALUE : index;
+        }));
         return new PageImpl<>(data, pageable, getTotalCount(countQuery));
     }
 
