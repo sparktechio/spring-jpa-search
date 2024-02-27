@@ -10,7 +10,7 @@ import java.time.*;
 import java.util.Arrays;
 import java.util.Objects;
 
-public interface SearchPredicateGenerator<E> {
+public interface SearchServicePredicateGenerator<E> {
 
     @SuppressWarnings("unchecked")
     default  <Y extends Comparable<? super Y>> Predicate plainQueryToPredicate(String field, Root<E> root, CriteriaBuilder builder) {
