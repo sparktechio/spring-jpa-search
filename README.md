@@ -1,5 +1,7 @@
 # Spring JPA Search
 
+![Build spring jpa search](https://github.com/sparktechio/spring-jpa-search/actions/workflows/main.yml/badge.svg)
+
 ## Introduction:
 
 Our simple search library provides a powerful solution for efficiently searching through resources within your 
@@ -125,6 +127,3 @@ Implementation of the service require EntityManager instance only.
     - required: `false`
     - default `false`
     - number of query params: `0,1`
-
-
-
