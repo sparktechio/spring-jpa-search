@@ -44,6 +44,7 @@ public interface SearchServicePredicateGenerator<E> {
             case ":~" -> builder.like(builder.upper((Expression<String>) property), "%" + value.toUpperCase() + "%");
             case "!~" -> builder.notLike(builder.upper((Expression<String>) property), "%" + value.toUpperCase() + "%");
             case "/:" -> property.in(Arrays.stream(value.split(",")).map(part -> prepareValue(property, part)).toList());
+            case "!/" -> builder.not(property.in(Arrays.stream(value.split(",")).map(part -> prepareValue(property, part)).toList()));
             default -> null;
         };
     }
