@@ -2,6 +2,7 @@ package com.sparktechcode.springjpasearch.services;
 
 import com.sparktechcode.springjpasearch.entities.BaseEntity;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -16,47 +17,31 @@ public interface SearchServiceFetcher<I, E extends BaseEntity<I>> extends Search
 
     EntityManager getEntityManager();
 
+    default List<String> getEntityGraphAttributes() {
+        return List.of();
+    }
+
     default List<E> findAllById(List<String> ids) {
         if (ids == null || ids.isEmpty()) {
             return new ArrayList<>();
         }
-        var criteriaBuilder = getEntityManager().getCriteriaBuilder();
-        var criteriaQuery = criteriaBuilder.createQuery(getEntityClass());
-        var root = criteriaQuery.from(getEntityClass());
-        criteriaQuery.select(root);
-        criteriaQuery.where(root.get(getIdFieldName()).in(ids));
-        return getEntityManager().createQuery(criteriaQuery).getResultList();
+        return createQuery((root, query, builder) -> root.get(getIdFieldName()).in(ids)).getResultList();
     }
 
     default List<E> findAll() {
-        var criteriaBuilder = getEntityManager().getCriteriaBuilder();
-        var criteriaQuery = criteriaBuilder.createQuery(getEntityClass());
-        var root = criteriaQuery.from(getEntityClass());
-        criteriaQuery.select(root);
-        var typedQuery = getEntityManager().createQuery(criteriaQuery);
-        return typedQuery.getResultList();
+        return createQuery(null).getResultList();
     }
 
-    default Page<E> findAll(Specification<E> spec, Pageable pageable) {
-        var criteriaBuilder = getEntityManager().getCriteriaBuilder();
-        var criteriaQuery = criteriaBuilder.createQuery(getEntityClass());
-        var root = criteriaQuery.from(getEntityClass());
-        criteriaQuery.select(root);
-        criteriaQuery.where(spec.toPredicate(root, criteriaQuery, criteriaBuilder));
-        var typedQuery = getEntityManager().createQuery(criteriaQuery);
+    default Page<E> findAll(Specification<E> specification, Pageable pageable) {
+        var typedQuery = createQuery(specification);
         typedQuery.setFirstResult((int) pageable.getOffset());
         typedQuery.setMaxResults(pageable.getPageSize());
         var data = typedQuery.getResultList();
         return new PageImpl<>(data, pageable, data.size());
     }
 
-    default Optional<E> findOne(Specification<E> spec) {
-        var criteriaBuilder = getEntityManager().getCriteriaBuilder();
-        var criteriaQuery = criteriaBuilder.createQuery(getEntityClass());
-        var root = criteriaQuery.from(getEntityClass());
-        criteriaQuery.select(root);
-        criteriaQuery.where(spec.toPredicate(root, criteriaQuery, criteriaBuilder));
-        var typedQuery = getEntityManager().createQuery(criteriaQuery);
+    default Optional<E> findOne(Specification<E> specification) {
+        var typedQuery = createQuery(specification, false);
         var data = typedQuery.getSingleResult();
         return Optional.ofNullable(data);
     }
@@ -87,5 +72,28 @@ public interface SearchServiceFetcher<I, E extends BaseEntity<I>> extends Search
         return getEntityManager()
                 .createQuery(query)
                 .getSingleResult();
+    }
+
+
+    private TypedQuery<E> createQuery(Specification<E> specification) {
+        return createQuery(specification, true);
+    }
+
+    private TypedQuery<E> createQuery(Specification<E> specification, boolean fetchAttributes) {
+        var criteriaBuilder = getEntityManager().getCriteriaBuilder();
+        var criteriaQuery = criteriaBuilder.createQuery(getEntityClass());
+        var root = criteriaQuery.from(getEntityClass());
+        criteriaQuery.select(root);
+        if (specification != null) {
+            criteriaQuery.where(specification.toPredicate(root, criteriaQuery, criteriaBuilder));
+        }
+        var query = getEntityManager().createQuery(criteriaQuery);
+        if (fetchAttributes && !getEntityGraphAttributes().isEmpty()) {
+            var entityGraph = getEntityManager().createEntityGraph(getEntityClass());
+            getEntityGraphAttributes().forEach(entityGraph::addAttributeNodes);
+            entityGraph.addAttributeNodes(getEntityGraphAttributes().toArray(String[]::new));
+            query.setHint("javax.persistence.fetchgraph", entityGraph);
+        }
+        return query;
     }
 }
