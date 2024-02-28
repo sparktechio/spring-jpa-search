@@ -10,6 +10,8 @@ import java.time.*;
 import java.util.Arrays;
 import java.util.Objects;
 
+import static com.sparktechcode.springjpasearch.exceptions.SparkError.UNSUPPORTED_OPERATION;
+
 public interface SearchServicePredicateGenerator<E> {
 
     @SuppressWarnings("unchecked")
@@ -27,13 +29,6 @@ public interface SearchServicePredicateGenerator<E> {
 
     @SuppressWarnings("unchecked")
     default <Y extends Comparable<? super Y>> Predicate fieldToPredicate(Expression<Y> property, String operation, String value, CriteriaBuilder builder) {
-        if (value.equals("null")) {
-            return switch (operation) {
-                case "::" -> builder.isNull(property);
-                case "!:" -> builder.isNotNull(property);
-                default -> null;
-            };
-        }
         return switch (operation) {
             case "::" -> builder.equal(property, prepareValue(property, value));
             case "!:" -> builder.notEqual(property, prepareValue(property, value));
@@ -45,7 +40,9 @@ public interface SearchServicePredicateGenerator<E> {
             case "!~" -> builder.notLike(builder.upper((Expression<String>) property), "%" + value.toUpperCase() + "%");
             case "/:" -> property.in(Arrays.stream(value.split(",")).map(part -> prepareValue(property, part)).toList());
             case "!/" -> builder.not(property.in(Arrays.stream(value.split(",")).map(part -> prepareValue(property, part)).toList()));
-            default -> null;
+            case "!!" -> builder.isNotNull(property);
+            case "<>" -> builder.isNull(property);
+            default -> throw new BadRequestException(UNSUPPORTED_OPERATION, "Unsupported operation: " + operation);
         };
     }
 

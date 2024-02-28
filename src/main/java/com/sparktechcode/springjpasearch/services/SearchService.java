@@ -34,6 +34,6 @@ public interface SearchService<I, E extends BaseEntity<I>> extends
             var index = ids.indexOf((String) item.getId());
             return index == -1 ? Integer.MAX_VALUE : index;
         }));
-        return new PageImpl<>(data, pageable, getTotalCount(countQuery));
+        return new PageImpl<>(data, pageable, countBy(countQuery));
     }
 }

@@ -10,6 +10,7 @@ import org.springframework.data.jpa.domain.Specification;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public interface SearchServiceFetcher<I, E extends BaseEntity<I>> extends SearchServiceParser<I, E> {
 
@@ -27,6 +28,15 @@ public interface SearchServiceFetcher<I, E extends BaseEntity<I>> extends Search
         return getEntityManager().createQuery(criteriaQuery).getResultList();
     }
 
+    default List<E> findAll() {
+        var criteriaBuilder = getEntityManager().getCriteriaBuilder();
+        var criteriaQuery = criteriaBuilder.createQuery(getEntityClass());
+        var root = criteriaQuery.from(getEntityClass());
+        criteriaQuery.select(root);
+        var typedQuery = getEntityManager().createQuery(criteriaQuery);
+        return typedQuery.getResultList();
+    }
+
     default Page<E> findAll(Specification<E> spec, Pageable pageable) {
         var criteriaBuilder = getEntityManager().getCriteriaBuilder();
         var criteriaQuery = criteriaBuilder.createQuery(getEntityClass());
@@ -38,6 +48,17 @@ public interface SearchServiceFetcher<I, E extends BaseEntity<I>> extends Search
         typedQuery.setMaxResults(pageable.getPageSize());
         var data = typedQuery.getResultList();
         return new PageImpl<>(data, pageable, data.size());
+    }
+
+    default Optional<E> findOne(Specification<E> spec) {
+        var criteriaBuilder = getEntityManager().getCriteriaBuilder();
+        var criteriaQuery = criteriaBuilder.createQuery(getEntityClass());
+        var root = criteriaQuery.from(getEntityClass());
+        criteriaQuery.select(root);
+        criteriaQuery.where(spec.toPredicate(root, criteriaQuery, criteriaBuilder));
+        var typedQuery = getEntityManager().createQuery(criteriaQuery);
+        var data = typedQuery.getSingleResult();
+        return Optional.ofNullable(data);
     }
 
     default List<String> getIds(Specification<E> specification, Pageable pageable) {
@@ -57,7 +78,7 @@ public interface SearchServiceFetcher<I, E extends BaseEntity<I>> extends Search
                 .toList();
     }
 
-    default Long getTotalCount(Specification<E> specification) {
+    default Long countBy(Specification<E> specification) {
         var builder = getEntityManager().getCriteriaBuilder();
         var query = builder.createQuery(Long.class);
         var root = query.from(getEntityClass());

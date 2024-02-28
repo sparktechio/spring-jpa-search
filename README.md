@@ -52,8 +52,8 @@ public class UserController implements SearchService<String, UserEntity> {
     private final EntityManager entityManager;
 
     @GetMapping()
-    public PageData<Response> search(@RequestParam MultiValueMap<String, String> queryParams) {
-        return search(queryParams);
+    public PageData<Response> searchUsers(@RequestParam MultiValueMap<String, String> queryParams) {
+        return toPage(search(queryParams));
     }
     
     private PageData<Response> toPage(Page<UserEntity> users) {
@@ -87,7 +87,7 @@ GET /search
     &filter=roles.name::CUSTOMER            associate role name is `CUSTOMER`
     &filter=addresses.country.code::BA      address country code is `BA`
     &order=age:d                            age descending order
-    &order=created                          created time ascending order
+    &order=created:a                        created time ascending order
 ```
 
 ```java
@@ -98,10 +98,12 @@ public class UserController implements SearchService<String, UserEntity> {
     private final EntityManager entityManager;
 
     @GetMapping()
-    public PageData<Response> search(@RequestParam MultiValueMap<String, String> queryParams) {
-        return search(
+    public PageData<Response> searchUsers(@RequestParam MultiValueMap<String, String> queryParams) {
+        return toPage(
+            search(
                 queryParams, 
-                (root, query, builder) -> builder.equal(root.get("companyId"), 10) // additional filter only users with company id `10`
+                (root, query, builder) -> builder.equal(root.get("companyId"), 10) // additional filter, only users with company id `10`
+            )
         );
     }
     
@@ -134,13 +136,13 @@ public class UserController implements SearchService<String, UserEntity> {
   - number of query params: `0,1`
 - `order`
   - type: `String`
-  - pattern: `([\w.]*):([a,d])`
+  - pattern: `([\w.]*):([a,d])` or `{fieldName}:{orderDirection}`
   - required: `false`
   - default `default database order`
   - number of query params: `0,1...n`
 - `filter`
     - type: `String`
-    - pattern: `([\\w.].*)([:</>~!]{2})(.*)"`
+    - pattern: `([\\w.].*)([:</>~!]{2})(.*)"` or `{fieldName}{operation}{value}`
     - required: `false`
     - default `fetch whole dataset`
     - number of query params: `0,1...n`
@@ -155,6 +157,8 @@ public class UserController implements SearchService<String, UserEntity> {
       - `<:`: lessThanOrEqualTo, for numeric and date/time data types
       - `:~`: like, for textual data types
       - `!~`: not like, for textual data types
+      - `!!`: is not null, for all data types
+      - `<>`: is null, for all data types
 - `allDate`
     - type: `boolean`
     - required: `false`
