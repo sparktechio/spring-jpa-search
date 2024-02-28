@@ -17,23 +17,45 @@ public interface SearchService<I, E extends BaseEntity<I>> extends
         return search(params, null);
     }
 
+    default Page<I> searchIdentifiers(MultiValueMap<String, String> params) {
+        return searchIdentifiers(params, null);
+    }
+
     default Page<E> search(MultiValueMap<String, String> params, Specification<E> specification) {
-        if (this.isSearchAllDataAllowed()) {
-            if (requestedAllData(params)) {
-                return findAll(toDataSpecification(params, specification), Pageable.unpaged());
-            }
+        if (fetchAllData(params)) {
+            return findAll(toDataSpecification(params, specification), Pageable.unpaged());
         }
-        var limit = parseIntParam(params, limitParamName(), 12, 1, 100);
-        var page = parseIntParam(params, pageParamName(), 0, 0, Integer.MAX_VALUE);
-        var pageable = Pageable.ofSize(limit).withPage(page);
+        var ids = searchIdentifiers(params, specification);
+        var data = findAllById(ids.getContent());
+        data.sort(Comparator.comparing(item -> {
+            var index = ids.getContent().indexOf(item.getId());
+            return index == -1 ? Integer.MAX_VALUE : index;
+        }));
+        return new PageImpl<>(data, ids.getPageable(), ids.getTotalElements());
+    }
+
+    default Page<I> searchIdentifiers(MultiValueMap<String, String> params, Specification<E> specification) {
+        var pageable = getPageable(params);
         var dataQuery = toDataSpecification(params, specification);
         var countQuery = toCountSpecification(params, specification);
         var ids = getIds(dataQuery, pageable);
-        var data = findAllById(ids);
-        data.sort(Comparator.comparing(item -> {
-            var index = ids.indexOf((String) item.getId());
-            return index == -1 ? Integer.MAX_VALUE : index;
-        }));
-        return new PageImpl<>(data, pageable, countBy(countQuery));
+        return new PageImpl<>(ids, pageable, countBy(countQuery));
+    }
+
+    private boolean fetchAllData(MultiValueMap<String, String> params) {
+        if (this.isSearchAllDataAllowed()) {
+            return requestedAllData(params);
+        }
+        return false;
+    }
+
+    private Pageable getPageable(MultiValueMap<String, String> params) {
+        if (fetchAllData(params)) {
+            return Pageable.unpaged();
+        } else {
+            var limit = parseIntParam(params, limitParamName(), 12, 1, 100);
+            var page = parseIntParam(params, pageParamName(), 0, 0, Integer.MAX_VALUE);
+            return Pageable.ofSize(limit).withPage(page);
+        }
     }
 }

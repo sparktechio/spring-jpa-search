@@ -17,11 +17,11 @@ public interface SearchServiceFetcher<I, E extends BaseEntity<I>> extends Search
 
     EntityManager getEntityManager();
 
-    default List<String> getEntityGraphAttributes() {
+    default List<String> getSearchEntityGraphAttributes() {
         return List.of();
     }
 
-    default List<E> findAllById(List<String> ids) {
+    default List<E> findAllById(List<I> ids) {
         if (ids == null || ids.isEmpty()) {
             return new ArrayList<>();
         }
@@ -46,7 +46,8 @@ public interface SearchServiceFetcher<I, E extends BaseEntity<I>> extends Search
         return Optional.ofNullable(data);
     }
 
-    default List<String> getIds(Specification<E> specification, Pageable pageable) {
+    @SuppressWarnings("unchecked")
+    default List<I> getIds(Specification<E> specification, Pageable pageable) {
         var builder = getEntityManager().getCriteriaBuilder();
         var query = builder.createQuery(Serializable.class);
         var root = query.from(getEntityClass());
@@ -59,7 +60,7 @@ public interface SearchServiceFetcher<I, E extends BaseEntity<I>> extends Search
                 .setMaxResults(pageable.getPageSize())
                 .getResultList()
                 .stream()
-                .map(Object::toString)
+                .map(item -> (I) item)
                 .toList();
     }
 
@@ -88,10 +89,10 @@ public interface SearchServiceFetcher<I, E extends BaseEntity<I>> extends Search
             criteriaQuery.where(specification.toPredicate(root, criteriaQuery, criteriaBuilder));
         }
         var query = getEntityManager().createQuery(criteriaQuery);
-        if (fetchAttributes && !getEntityGraphAttributes().isEmpty()) {
+        if (fetchAttributes && !getSearchEntityGraphAttributes().isEmpty()) {
             var entityGraph = getEntityManager().createEntityGraph(getEntityClass());
-            getEntityGraphAttributes().forEach(entityGraph::addAttributeNodes);
-            entityGraph.addAttributeNodes(getEntityGraphAttributes().toArray(String[]::new));
+            getSearchEntityGraphAttributes().forEach(entityGraph::addAttributeNodes);
+            entityGraph.addAttributeNodes(getSearchEntityGraphAttributes().toArray(String[]::new));
             query.setHint("javax.persistence.fetchgraph", entityGraph);
         }
         return query;
