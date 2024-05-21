@@ -51,7 +51,6 @@ public interface SearchServicePredicateGenerator<E> {
         try {
             var type = property.getJavaType();
             if (String.class.isAssignableFrom(type)) return (Y) value;
-            else if (Serializable.class.isAssignableFrom(type)) return (Y) value;
             else if (Boolean.class.isAssignableFrom(type)) return (Y) Boolean.valueOf(value);
             else if (type.isEnum()) return (Y) Enum.valueOf((Class) type, value);
             else if (Double.class.isAssignableFrom(type)) return (Y) Double.valueOf(value);
@@ -64,6 +63,7 @@ public interface SearchServicePredicateGenerator<E> {
             else if (LocalDateTime.class.isAssignableFrom(type)) return (Y) LocalDateTime.parse(value);
             else if (OffsetDateTime.class.isAssignableFrom(type)) return (Y) OffsetDateTime.parse(value);
             else if (Instant.class.isAssignableFrom(type)) return (Y) Instant.parse(value);
+            else if (Serializable.class.isAssignableFrom(type)) return (Y) value;
         } catch (Exception e) {
             throw new BadRequestException(SparkError.UNEXPECTED_QUERY_PARAMETER, e.getMessage(), e);
         }
