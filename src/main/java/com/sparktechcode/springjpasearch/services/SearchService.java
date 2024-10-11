@@ -17,6 +17,10 @@ public interface SearchService<I, E extends BaseEntity<I>> extends
         return search(params, null);
     }
 
+    default Long count(MultiValueMap<String, String> params) {
+        return count(params, null);
+    }
+
     default Page<I> searchIdentifiers(MultiValueMap<String, String> params) {
         return searchIdentifiers(params, null);
     }
@@ -32,6 +36,10 @@ public interface SearchService<I, E extends BaseEntity<I>> extends
             return index == -1 ? Integer.MAX_VALUE : index;
         }));
         return new PageImpl<>(data, ids.getPageable(), ids.getTotalElements());
+    }
+
+    default Long count(MultiValueMap<String, String> params, Specification<E> specification) {
+        return countBy(toCountSpecification(params, specification));
     }
 
     default Page<I> searchIdentifiers(MultiValueMap<String, String> params, Specification<E> specification) {
