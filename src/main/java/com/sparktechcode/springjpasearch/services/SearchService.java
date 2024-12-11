@@ -50,6 +50,10 @@ public interface SearchService<I, E extends BaseEntity<I>> extends
         return new PageImpl<>(ids, pageable, countBy(countQuery));
     }
 
+    default Integer getMaxPageSize() {
+        return 100;
+    }
+
     private boolean fetchAllData(MultiValueMap<String, String> params) {
         if (this.isSearchAllDataAllowed()) {
             return requestedAllData(params);
@@ -61,7 +65,7 @@ public interface SearchService<I, E extends BaseEntity<I>> extends
         if (fetchAllData(params)) {
             return Pageable.unpaged();
         } else {
-            var limit = parseIntParam(params, limitParamName(), 12, 1, 100);
+            var limit = parseIntParam(params, limitParamName(), 12, 1, getMaxPageSize());
             var page = parseIntParam(params, pageParamName(), 0, 0, Integer.MAX_VALUE);
             return Pageable.ofSize(limit).withPage(page);
         }

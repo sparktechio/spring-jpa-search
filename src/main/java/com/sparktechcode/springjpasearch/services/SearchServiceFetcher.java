@@ -34,8 +34,10 @@ public interface SearchServiceFetcher<I, E extends BaseEntity<I>> extends Search
 
     default Page<E> findAll(Specification<E> specification, Pageable pageable) {
         var typedQuery = createQuery(specification);
-        typedQuery.setFirstResult((int) pageable.getOffset());
-        typedQuery.setMaxResults(pageable.getPageSize());
+        if (pageable.isPaged()) {
+            typedQuery.setFirstResult((int) pageable.getOffset());
+            typedQuery.setMaxResults(pageable.getPageSize());
+        }
         var data = typedQuery.getResultList();
         return new PageImpl<>(data, pageable, data.size());
     }
@@ -54,14 +56,23 @@ public interface SearchServiceFetcher<I, E extends BaseEntity<I>> extends Search
         query.select(root.get(getIdFieldName()));
         query.where(specification.toPredicate(root, query, builder));
         query.groupBy(root.get(getIdFieldName()));
-        return getEntityManager()
-                .createQuery(query)
-                .setFirstResult((int) pageable.getOffset())
-                .setMaxResults(pageable.getPageSize())
-                .getResultList()
-                .stream()
-                .map(item -> (I) item)
-                .toList();
+        if (pageable.isUnpaged()) {
+            return getEntityManager()
+                    .createQuery(query)
+                    .getResultList()
+                    .stream()
+                    .map(item -> (I) item)
+                    .toList();
+        } else {
+            return getEntityManager()
+                    .createQuery(query)
+                    .setFirstResult((int) pageable.getOffset())
+                    .setMaxResults(pageable.getPageSize())
+                    .getResultList()
+                    .stream()
+                    .map(item -> (I) item)
+                    .toList();
+        }
     }
 
     default Long countBy(Specification<E> specification) {
