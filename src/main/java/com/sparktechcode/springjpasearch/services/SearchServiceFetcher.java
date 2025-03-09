@@ -43,9 +43,13 @@ public interface SearchServiceFetcher<I, E extends BaseEntity<I>> extends Search
     }
 
     default Optional<E> findOne(Specification<E> specification) {
-        var typedQuery = createQuery(specification, false);
-        var data = typedQuery.getSingleResult();
-        return Optional.ofNullable(data);
+        try {
+            var typedQuery = createQuery(specification, false);
+            var data = typedQuery.getSingleResult();
+            return Optional.ofNullable(data);
+        } catch (Exception e) {
+            return Optional.empty();
+        }
     }
 
     @SuppressWarnings("unchecked")
