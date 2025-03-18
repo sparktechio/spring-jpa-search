@@ -14,17 +14,21 @@ import static com.sparktechcode.springjpasearch.exceptions.SparkError.UNSUPPORTE
 
 public interface SearchServicePredicateGenerator<E> {
 
-    @SuppressWarnings("unchecked")
-    default  <Y extends Comparable<? super Y>> Predicate plainQueryToPredicate(String field, Root<E> root, CriteriaBuilder builder) {
+    default  Predicate plainQueryToPredicate(String field, Root<E> root, CriteriaBuilder builder) {
         var matcher = SearchService.FILTER_PATTERN.matcher(field);
         if (matcher.matches() && matcher.groupCount() > 2) {
             var name = matcher.group(1);
             var operation = matcher.group(2);
             var value = matcher.group(3);
-            var path = name.contains(".") ? joinTables(name, root) : getPath(root, name);
-            return fieldToPredicate((Expression<Y>) path, operation, value, builder);
+            return fieldToPredicate(name, operation, value, root, builder);
         }
         return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    default <Y extends Comparable<? super Y>> Predicate fieldToPredicate(String name, String operation, String value, Root<E> root, CriteriaBuilder builder) {
+        var path = name.contains(".") ? joinTables(name, root) : getPath(root, name);
+        return fieldToPredicate((Expression<Y>) path, operation, value, builder);
     }
 
     @SuppressWarnings("unchecked")
