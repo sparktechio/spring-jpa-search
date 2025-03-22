@@ -90,9 +90,9 @@ public interface SearchServicePredicateGenerator<E> {
             associationPath = associationPath.isEmpty() ? association : associationPath + "." + association;
             if (!Objects.equals(association, last)) {
                 if (path == null) {
-                    path = root.join(association);
+                    path = root.join(association, JoinType.LEFT);
                 } else {
-                    path = path.join(association);
+                    path = path.join(association, JoinType.LEFT);
                 }
             }
         }
