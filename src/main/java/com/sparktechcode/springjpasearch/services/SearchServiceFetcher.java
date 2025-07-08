@@ -84,7 +84,7 @@ public interface SearchServiceFetcher<I, E extends BaseEntity<I>> extends Search
         var builder = getEntityManager().getCriteriaBuilder();
         var query = builder.createQuery(Long.class);
         var root = query.from(getEntityClass());
-        query.select(builder.count(root.get(getIdFieldName())));
+        query.select(builder.countDistinct(root.get(getIdFieldName())));
         query.where(specification.toPredicate(root, query, builder));
         return getEntityManager()
                 .createQuery(query)
