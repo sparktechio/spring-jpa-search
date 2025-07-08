@@ -13,7 +13,8 @@
 
     <groupId>com.sparktechcode</groupId>
     <artifactId>spring-jpa-search</artifactId>
-    <version>1.1.1-SNAPSHOT</version>
+    <name>Spring Jpa Search</name>
+    <version>1.1.2-SNAPSHOT</version>
 
     <packaging>jar</packaging>
 

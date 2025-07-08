@@ -58,6 +58,7 @@ public interface SearchServiceFetcher<I, E extends BaseEntity<I>> extends Search
         var query = builder.createQuery(Serializable.class);
         var root = query.from(getEntityClass());
         query.select(root.get(getIdFieldName()));
+        query.distinct(true);
         query.where(specification.toPredicate(root, query, builder));
         query.groupBy(root.get(getIdFieldName()));
         if (pageable.isUnpaged()) {
