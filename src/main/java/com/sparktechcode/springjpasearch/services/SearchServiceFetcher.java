@@ -2,13 +2,16 @@ package com.sparktechcode.springjpasearch.services;
 
 import com.sparktechcode.springjpasearch.entities.BaseEntity;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.Tuple;
 import jakarta.persistence.TypedQuery;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Order;
+import jakarta.persistence.criteria.Selection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -55,17 +58,20 @@ public interface SearchServiceFetcher<I, E extends BaseEntity<I>> extends Search
     @SuppressWarnings("unchecked")
     default List<I> getIds(Specification<E> specification, Pageable pageable) {
         var builder = getEntityManager().getCriteriaBuilder();
-        var query = builder.createQuery(Serializable.class);
+        var query = builder.createTupleQuery();
         var root = query.from(getEntityClass());
-        query.select(root.get(getIdFieldName()));
         query.where(specification.toPredicate(root, query, builder));
-        query.groupBy(root.get(getIdFieldName()));
+        var selection = new ArrayList<Expression<?>>();
+        selection.add(root.get(getIdFieldName()));
+        selection.addAll(query.getOrderList().stream().map(Order::getExpression).toList());
+        query.multiselect((List<Selection<?>>) ((List<?>) selection));
+        query.groupBy(selection);
         if (pageable.isUnpaged()) {
             return getEntityManager()
                     .createQuery(query)
                     .getResultList()
                     .stream()
-                    .map(item -> (I) item)
+                    .map(item -> (I) item.toArray()[0])
                     .toList();
         } else {
             return getEntityManager()
@@ -74,7 +80,7 @@ public interface SearchServiceFetcher<I, E extends BaseEntity<I>> extends Search
                     .setMaxResults(pageable.getPageSize())
                     .getResultList()
                     .stream()
-                    .map(item -> (I) item)
+                    .map(item -> (I) item.toArray()[0])
                     .toList();
         }
     }

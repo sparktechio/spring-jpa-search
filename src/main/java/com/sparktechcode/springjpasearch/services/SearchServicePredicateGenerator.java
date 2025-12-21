@@ -81,18 +81,18 @@ public interface SearchServicePredicateGenerator<E> {
         return path.get(field);
     }
 
-    default  <X, Y> Path<Y> joinTables(String field, Root<E> root) {
+    default  <Y> Path<Y> joinTables(String field, Root<E> root) {
         var associations = field.split("\\.");
-        Join<X, Y> path = null;
+        Path<Y> path = null;
         var last = associations[associations.length - 1];
         var associationPath = "";
         for (var association : associations) {
             associationPath = associationPath.isEmpty() ? association : associationPath + "." + association;
             if (!Objects.equals(association, last)) {
                 if (path == null) {
-                    path = root.join(association, JoinType.LEFT);
+                    path = root.get(association);
                 } else {
-                    path = path.join(association, JoinType.LEFT);
+                    path = path.get(association);
                 }
             }
         }
