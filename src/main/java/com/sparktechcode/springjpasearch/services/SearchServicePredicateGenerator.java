@@ -7,31 +7,30 @@ import jakarta.persistence.criteria.*;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.*;
-import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
-import java.util.Objects;
+import java.util.Map;
 
 import static com.sparktechcode.springjpasearch.exceptions.SparkError.UNSUPPORTED_OPERATION;
 
 public interface SearchServicePredicateGenerator<E> {
 
-    default  Predicate plainQueryToPredicate(String field, Root<E> root, CriteriaBuilder builder) {
+    default  Predicate plainQueryToPredicate(String field, Root<E> root, CriteriaBuilder builder, Map<String, Path<?>> associations) {
         var matcher = SearchService.FILTER_PATTERN.matcher(field);
         if (matcher.matches() && matcher.groupCount() > 2) {
             var name = matcher.group(1);
             var operation = matcher.group(2);
             var value = matcher.group(3);
-            return fieldToPredicate(name, operation, value, root, builder);
+            return fieldToPredicate(name, operation, value, root, builder, associations);
         }
         return null;
     }
 
     @SuppressWarnings("unchecked")
-    default <Y extends Comparable<? super Y>> Predicate fieldToPredicate(String name, String operation, String value, Root<E> root, CriteriaBuilder builder) {
+    default <Y extends Comparable<? super Y>> Predicate fieldToPredicate(String name, String operation, String value, Root<E> root, CriteriaBuilder builder, Map<String, Path<?>> associations) {
         var operations = name.split("`");
         var fieldPath = operations[0];
         var function = operations.length > 1 ? operations[1] : null;
-        var path = fieldPath.contains(".") ? joinTables(fieldPath, root) : getPath(root, fieldPath);
+        var path = fieldPath.contains(".") ? joinTables(fieldPath, root, associations) : getPath(root, fieldPath);
         return fieldToPredicate((Expression<Y>) evaluateFunction(path, function, builder), operation, value, function, builder);
     }
 
@@ -96,21 +95,22 @@ public interface SearchServicePredicateGenerator<E> {
         return path.get(field);
     }
 
-    default  <Y> Path<Y> joinTables(String field, Root<E> root) {
+    default  <Y> Path<Y> joinTables(String field, Root<E> root, Map<String, Path<?>> joinedAssociations) {
         var associations = field.split("\\.");
-        Path<Y> path = null;
-        var last = associations[associations.length - 1];
+        if (joinedAssociations.containsKey(field)) {
+            return (Path<Y>) joinedAssociations.get(field);
+        }
+        Path<Y> path = (Path<Y>) root;
         var associationPath = "";
         for (var association : associations) {
-            associationPath = associationPath.isEmpty() ? association : associationPath + "." + association;
-            if (!Objects.equals(association, last)) {
-                if (path == null) {
-                    path = root.get(association);
-                } else {
-                    path = path.get(association);
-                }
+            associationPath = associationPath.isEmpty() ? association : (associationPath + "." + association);
+            if (joinedAssociations.containsKey(associationPath)) {
+                path = (Path<Y>) joinedAssociations.get(associationPath);
+            } else {
+                path = path.get(association);
+                joinedAssociations.put(associationPath, path);
             }
         }
-        return getPath(path, last);
+        return path;
     }
 }

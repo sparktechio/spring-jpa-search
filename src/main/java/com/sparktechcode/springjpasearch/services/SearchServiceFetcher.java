@@ -2,7 +2,6 @@ package com.sparktechcode.springjpasearch.services;
 
 import com.sparktechcode.springjpasearch.entities.BaseEntity;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.Tuple;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Order;
